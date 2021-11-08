@@ -13,6 +13,6 @@ module.exports = {
   env: {
     node: true,
   },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: ['.eslintrc.js', 'webpack.config.js'],
   rules: {},
 };
