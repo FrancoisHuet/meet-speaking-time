@@ -9,7 +9,6 @@ const updateView = function () {
     );
     document.querySelector('#totalTime').innerHTML = formatTime(
       currentMeeting.elapsed,
-      false,
     );
   });
 

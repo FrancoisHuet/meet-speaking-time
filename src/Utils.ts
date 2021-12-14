@@ -1,10 +1,9 @@
 /**
- * Formats the given milliseconds into a string of this format: "HH:MM:SS:MSS".
+ * Formats the given milliseconds into a string of this format: "HH:MM:SS" or just "SSs".
  * @param ms
- * @param showMilliseconds
  */
-export function formatTime(ms: number, showMilliseconds = true): string {
-  const milliseconds = ms % 1000;
+
+export function formatTime(ms: number): string {
   const seconds = Math.floor((ms / 1000) % 60);
   const minutes = Math.floor((ms / (60 * 1000)) % 60);
   const hours = Math.floor((ms / (3600 * 1000)) % 3600);
@@ -25,11 +24,20 @@ export function formatTime(ms: number, showMilliseconds = true): string {
     if (timeStr) {
       timeStr += seconds < 10 ? '0' + seconds : seconds;
     } else {
-      timeStr += seconds;
+      timeStr = `${seconds}s`;
     }
   }
-  if (showMilliseconds) {
-    timeStr += `.${milliseconds}`;
-  }
   return timeStr;
+}
+
+export function copyToClipboard(newClip: string): void {
+  navigator.clipboard.writeText(newClip).then(
+    function () {
+      return true;
+    },
+    function () {
+      // clipboard write failed
+      return false;
+    },
+  );
 }

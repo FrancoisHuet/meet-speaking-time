@@ -15,7 +15,7 @@ export class ParticipantNode {
     this.imageProfileNodeQuerySelector = `img[jscontroller="${jsControllerCodes.imageProfile}"]`;
   }
 
-  getMainElement(): Element {
+  getMainElement(): Element | null {
     return document.querySelector(`${this.mainNodeQuerySelector}`);
   }
 
@@ -25,12 +25,17 @@ export class ParticipantNode {
     );
   }
 
-  getNameElement(): Element {
-    return this.getMainElement().querySelector(`${this.nameNodeQuerySelector}`);
+  // Each participant can have multiple name UI elements
+  getNameElements(): NodeListOf<HTMLElement> | null {
+    const mainElement = this.getMainElement();
+    if (!mainElement) {
+      return null;
+    }
+    return mainElement.querySelectorAll(`${this.nameNodeQuerySelector}`);
   }
 
   getName(): string {
-    return this.getNameElement() ? this.getNameElement().innerHTML : '';
+    return this.getNameElements() ? this.getNameElements()[0].innerHTML : '';
   }
 
   getImageProfileElement(): Element {

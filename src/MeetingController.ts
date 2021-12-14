@@ -1,8 +1,11 @@
 import Logger from './Logger';
 import { jsControllerCodes, meetUiString } from './constants';
 import { Participant } from './Participant';
-import { formatTime } from './Utils';
+import { ClosedCaptions } from './ClosedCaptions';
+import { copyToClipboard, formatTime } from './Utils';
+import { getJSControllerDiv } from './ScrapingUtils';
 import { MeetingInformation, Storage } from './Storage';
+// import { info } from 'console';
 
 /**
  * Main object of the extension.
@@ -13,12 +16,15 @@ export default class MeetingController {
   meetingId: string;
   _logger: Logger;
   _storage: Storage;
+  _closedCaptionsDisplayed: string; // cache to avoid refreshing the UI too often
   participants: Participant[];
+  closedCaptions: ClosedCaptions;
 
   constructor() {
     this.participants = [];
     this._logger = new Logger('MeetingController');
     this._storage = new Storage();
+    this.closedCaptions = new ClosedCaptions();
 
     this.meetingStartedInterval = window.setInterval(
       function (self: MeetingController) {
@@ -66,7 +72,7 @@ export default class MeetingController {
 
   /**
    * Returns the list of participants boxes in the window.
-   * Please note, these can may be less than the people in the meeting since only the visible ones are captured.
+   * Please note, these may be less than the people in the meeting since only the visible ones are captured.
    */
   getParticipantsNodes(): NodeListOf<Element> {
     return document.querySelectorAll(
@@ -78,8 +84,20 @@ export default class MeetingController {
    * Returns the main box of the meeting that contains all the participants.
    */
   getParticipantsContainerBoxNode(): Element {
-    return document.querySelector(
-      `div[jscontroller="${jsControllerCodes.participantsContainerBox}"]`,
+    return getJSControllerDiv(
+      jsControllerCodes.participantsContainerBox,
+      'main box of the meeting with all the participants',
+    );
+  }
+
+  /**
+   * Returns the info pane node accessible by clicking the "i" info button.
+   */
+  getMeetingDetailsInfoPaneNode(): HTMLElement | null {
+    return getJSControllerDiv(
+      jsControllerCodes.meetingDetailsInfoPane,
+      'info pane node accessible by clicking the "i" info button',
+      true, // Can be null, when the info box is hidden.
     );
   }
 
@@ -91,6 +109,32 @@ export default class MeetingController {
   getParticipantInitialId(node: Element): string {
     if (node == null) return null;
     return node.getAttribute('data-initial-participant-id');
+  }
+
+  /**
+   * Gets or creates a Time Tracker info node within Meeting Details pane.
+   * @returns time tracker info node
+   */
+  getOrCreateTimeTrackerInfoNode(): HTMLElement | null {
+    const infoPaneNode = this.getMeetingDetailsInfoPaneNode();
+    if (!infoPaneNode) {
+      return null;
+    }
+    let infoPaneExtensionNode: HTMLElement = infoPaneNode.querySelector(
+      `div[jscontroller="${jsControllerCodes.meetingDetailsInfoPaneExtension}"]`,
+    );
+    if (!infoPaneExtensionNode) {
+      infoPaneExtensionNode = document.createElement('div');
+      infoPaneExtensionNode.setAttribute(
+        'jsController',
+        jsControllerCodes.meetingDetailsInfoPaneExtension,
+      );
+      // Make it possible to select the text
+      infoPaneExtensionNode.setAttribute('style', 'user-select: text');
+
+      infoPaneNode.appendChild(infoPaneExtensionNode);
+    }
+    return infoPaneExtensionNode;
   }
 
   /**
@@ -108,6 +152,9 @@ export default class MeetingController {
 
     // start tracking participants already present
     this.loadCurrentParticipantBoxes();
+
+    // start tracking closed captions
+    this.closedCaptions.startObserver();
 
     setInterval(
       function reconciliateCurrentBoxesInterval(self: MeetingController) {
@@ -136,15 +183,22 @@ export default class MeetingController {
 
         const readableParticipants = [];
 
-        // const participantsKeys = Object.keys(self.participants);
-        let speakingTimeOfAllParticipants = 0;
+        // Identify when the most recent intervention took place, and reset
+        // the strike time of folks who stopped speaking earlier.
+        const speakingEnds = self.participants.map((p) => p.lastSpeakingEnd);
+        const mostRecentInterventionEnd = Math.max(...speakingEnds);
+        self.participants
+          .filter((p) => p.spokeRecently(mostRecentInterventionEnd))
+          .forEach((p) => {
+            const speakingStrikeTime = p.speakingStrikeTime;
+            p.stopSpeaking();
+            console.log(
+              `${p.name} stopped speaking, strike time was ${speakingStrikeTime} and is now ${p.speakingStrikeTime}`,
+            );
+          });
 
-        self.participants.forEach((singleParticipant: Participant) => {
-          speakingTimeOfAllParticipants =
-            speakingTimeOfAllParticipants +
-            singleParticipant.getTotalSpeakingTime();
-        });
-
+        // Update the display of who spoke for how long for each participant.
+        const speakingTimeOfAllParticipants = self.getTotalSpokenTime();
         self.participants.forEach((singleParticipant: Participant) => {
           const percentageOfSpeaking = `${(speakingTimeOfAllParticipants !== 0
             ? (singleParticipant.getTotalSpeakingTime() /
@@ -153,29 +207,65 @@ export default class MeetingController {
             : 0
           ).toFixed(1)}%`;
 
-          // add current speaking time next to participant's name
-          const participantsInformation = document.querySelectorAll(
-            `div[jscontroller="${jsControllerCodes.participantInformationBar}"]`,
-          );
-          for (const participant of participantsInformation as any) {
-            if (participant.innerHTML.includes(singleParticipant.name)) {
-              participant.innerHTML = `${singleParticipant.name}
-              <br/><small>(${formatTime(
-                singleParticipant.getTotalSpeakingTime(),
-                false,
-              )} - ${percentageOfSpeaking})</small>`;
+          const nameElements = singleParticipant.node.getNameElements();
+          if (nameElements) {
+            let nameAndInfoElementHTML = singleParticipant.name;
+            if (singleParticipant.getSpeakingStrikeTime()) {
+              // &#128483; is the unicode character of someone speaking
+              nameAndInfoElementHTML += `<small> &#128483; ${formatTime(
+                singleParticipant.getSpeakingStrikeTime(),
+              )}</small>`;
             }
+            if (singleParticipant.getTotalSpeakingTime()) {
+              nameAndInfoElementHTML += `<br/><small>${formatTime(
+                singleParticipant.getTotalSpeakingTime(),
+              )} (${percentageOfSpeaking})</small>`;
+            }
+            nameElements.forEach((singleNameElement) => {
+              singleNameElement.innerHTML = nameAndInfoElementHTML;
+            });
           }
 
           // prepare data to be sent to chrome.storage
           readableParticipants.push([
             singleParticipant.name,
-            formatTime(singleParticipant.getTotalSpeakingTime(), false),
+            formatTime(singleParticipant.getTotalSpeakingTime()),
             percentageOfSpeaking,
             singleParticipant.profileImageUrl,
             singleParticipant.getTotalSpeakingTime(),
           ]);
         });
+
+        const infoNode = self.getOrCreateTimeTrackerInfoNode();
+        if (infoNode) {
+          let dialogMD = '';
+          self.closedCaptions.events.forEach((ccEvent) => {
+            dialogMD += `**${ccEvent.who}**: ${ccEvent.what} (${formatTime(
+              ccEvent.howLong,
+            )})\n`;
+          });
+          const captionHTML =
+            'Text:<br/>' +
+            `<textarea id="textOfChat" class="scrollabletextbox" onclick="this.focus();this.select();" readonly="readonly" name="note" rows="8" style="width: 90%; font-size: x-small;">${dialogMD}</textarea><br/>` +
+            '<button id="copyTextOfChat" title="Copy">&nbsp;&#x2398;&nbsp;</button> ' +
+            '<button id="cutTextOfChat" title="Cut">&nbsp;&#x2702;&nbsp;</button> ';
+          if (this._closedCaptionsDisplayed !== captionHTML) {
+            // Avoid refreshing if there's not change
+            infoNode.innerHTML = captionHTML;
+            this._closedCaptionsDisplayed = captionHTML;
+            document
+              .getElementById('copyTextOfChat')
+              .addEventListener('click', function () {
+                copyToClipboard(dialogMD);
+              });
+            document
+              .getElementById('cutTextOfChat')
+              .addEventListener('click', function () {
+                copyToClipboard(dialogMD);
+                self.closedCaptions.clear();
+              });
+          }
+        }
 
         readableParticipants.sort((a, b) => {
           return b[4] - a[4];
@@ -247,7 +337,7 @@ export default class MeetingController {
   }
 
   onParticipantNodeRemoved(node: HTMLElement): void {
-    this._logger.log('Node remomved', node);
+    this._logger.log('Node removed', node);
 
     const initialId = this.getParticipantInitialId(node);
 
@@ -287,12 +377,30 @@ export default class MeetingController {
   }
 
   /**
+   * Returns the total number of milliseconds actually spoken during the meeting.
+   */
+  getTotalSpokenTime(): number {
+    let speakingTimeOfAllParticipants = 0;
+    this.participants.forEach((singleParticipant: Participant) => {
+      speakingTimeOfAllParticipants =
+        speakingTimeOfAllParticipants +
+        singleParticipant.getTotalSpeakingTime();
+    });
+    return speakingTimeOfAllParticipants;
+  }
+
+  /**
    * Updates the "clock" box with the meeting duration time.
    */
   updateMeetingDurationTime(): void {
     const elapsedMilliseconds = this.getTotalElapsedTime();
-    document.querySelector(
-      `div[jscontroller="${jsControllerCodes.timeMeetingBox}"]`,
-    ).innerHTML = `${formatTime(elapsedMilliseconds, false)}`;
+    const clockBox = getJSControllerDiv(
+      jsControllerCodes.timeMeetingBox,
+      '"clock" box',
+      true,
+    );
+    if (clockBox) {
+      clockBox.innerHTML = `${formatTime(elapsedMilliseconds)}`;
+    }
   }
 }

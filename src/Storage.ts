@@ -38,7 +38,7 @@ export class Storage {
   }
 
   set(meetingInformation: MeetingInformation): void {
-    this._logger.log(meetingInformation);
+    // this._logger.log(meetingInformation);
     this.saveCurrentMeeting(meetingInformation);
     this.saveHistory(meetingInformation);
   }

@@ -11,8 +11,10 @@ export class Participant {
   name: string;
   profileImageUrl: string;
   events: ParticipantEvent[] = [];
-  lastStartSpeaking: number = null;
-  totalSpeakingTime = 0;
+  speakingStrikeStart: number = null; // Start of current speaking event
+  lastSpeakingEnd: number = null; // When did they stopped/pause speaking
+  speakingStrikeTime = 0; // How long they are currently speaking, uninterrupted
+  totalSpeakingTime = 0; // How long they have been speaking this meeting, total
   _logger: Logger;
 
   constructor(initialId: string) {
@@ -35,46 +37,74 @@ export class Participant {
   }
 
   /**
+   * Returns the speaking time of the participant's current intervention, or 0 if they're not speaking.
+   * @returns current intervention time.
+   */
+  getLiveSpeakingTime(): number {
+    // if s/he is not speaking, the live intervention is of 0ms
+    if (!this.speakingStrikeStart) {
+      return 0;
+    }
+    // calculate the "live" speaking time
+    return new Date().getTime() - this.speakingStrikeStart;
+  }
+
+  /**
+   * Returns the speaking strike time of the participant, meaning for how long
+   * they've been speaking without interruption by someone else.
+   * @returns speaking strike time.
+   */
+  getSpeakingStrikeTime(): number {
+    // if s/he is not speaking, the live intervention is of 0ms
+    return this.speakingStrikeTime + this.getLiveSpeakingTime();
+  }
+
+  /**
    * Returns the current total speaking time of the participant.
    * Please note that this might be more than totalSpeakingTime if the user is currenly speaking.
    * @returns total speaking time.
    */
   getTotalSpeakingTime(): number {
-    // if he is not speaking, return the already calculated time
-    if (!this.lastStartSpeaking) {
-      return this.totalSpeakingTime;
-    }
+    return this.totalSpeakingTime + this.getLiveSpeakingTime();
+  }
 
-    // calculate the "live" speaking time
-    const liveSpeakingTime = new Date().getTime() - this.lastStartSpeaking;
-    return this.totalSpeakingTime + liveSpeakingTime;
+  spokeRecently(referenceTime: number | null): boolean {
+    const RECENCY_THRESHOLD_MS = 2000;
+    if (!referenceTime) {
+      referenceTime = new Date().getTime();
+    }
+    return (
+      this.lastSpeakingEnd !== null &&
+      this.lastSpeakingEnd < referenceTime - RECENCY_THRESHOLD_MS
+    );
   }
 
   speaking(): void {
-    if (!this.lastStartSpeaking) {
+    if (!this.speakingStrikeStart) {
       if (config.PersistEvents)
         this.events.push(
           new ParticipantEvent(ParticipantEventEnum.START_SPEAKING),
         );
       const now = new Date().getTime();
       this._logger.log(`[${this.initialId}][${now}]`);
-      this.lastStartSpeaking = now;
+      this.speakingStrikeStart = now;
     }
   }
 
   /**
-   * Calculate the speaking time since he/she has last started and adds it to the toal.
+   * Calculate the speaking time since he/she has last started and adds it to the total.
    */
-  stopSpeaking(): void {
+  pauseSpeaking(): void {
     if (config.PersistEvents)
       this.events.push(
         new ParticipantEvent(ParticipantEventEnum.STOP_SPEAKING),
       );
     const now = new Date().getTime();
+    this.lastSpeakingEnd = now;
     this._logger.log(`[${this.initialId}][${now}]`);
 
-    if (this.lastStartSpeaking) {
-      const speakingTime = now - this.lastStartSpeaking;
+    if (this.speakingStrikeStart) {
+      const speakingTime = now - this.speakingStrikeStart;
       this._logger.log(`speakingTime is '${speakingTime}'`);
       this._logger.log(
         `previous totalSpeakingTime was '${this.totalSpeakingTime}'`,
@@ -83,9 +113,19 @@ export class Participant {
     }
   }
 
+  /**
+   * Participant stopped speaking, possibly interrupted by someone else.
+   */
+  stopSpeaking(): void {
+    this.lastSpeakingEnd = null;
+    this.speakingStrikeStart = null;
+    this.speakingStrikeTime = 0;
+  }
+
   incrementSpeakingTime(value: number): void {
-    this.lastStartSpeaking = null;
+    this.speakingStrikeStart = null;
     this.totalSpeakingTime = this.totalSpeakingTime + value;
+    this.speakingStrikeTime = this.speakingStrikeTime + value;
     this._logger.log(`current totalSpeakingTime '${this.totalSpeakingTime}'`);
   }
 
@@ -111,7 +151,7 @@ export class Participant {
         if (isSpeaking) {
           this.speaking();
         } else {
-          this.stopSpeaking();
+          this.pauseSpeaking();
         }
         this._logger.log(
           `[observer][${this.initialId}] class has changed.`,
@@ -129,6 +169,6 @@ export class Participant {
 
   stopObservers(): void {
     this.microphoneObserver.disconnect();
-    this.stopSpeaking();
+    this.pauseSpeaking();
   }
 }

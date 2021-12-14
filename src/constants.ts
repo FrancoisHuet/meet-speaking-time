@@ -8,6 +8,9 @@ export enum jsControllerCodes {
   participantInformationBar = 'GQnsGd',
   userInformation = 'gjpsNc',
   imageProfile = 'PcYCFc',
+  meetingDetailsInfoPane = 'dkJU2d',
+  meetingDetailsInfoPaneExtension = 'ZZZZZZ',
+  closedCaptionsSection = 'TEjq6e',
 }
 
 export enum microphoneStatuses {
