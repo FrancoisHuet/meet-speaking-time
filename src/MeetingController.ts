@@ -246,7 +246,7 @@ export default class MeetingController {
           });
           const captionHTML =
             'Text:<br/>' +
-            `<textarea id="textOfChat" class="scrollabletextbox" onclick="this.focus();this.select();" readonly="readonly" name="note" rows="8" style="width: 90%; font-size: x-small;">${dialogMD}</textarea><br/>` +
+            `<textarea id="textOfChat" class="scrollabletextbox" readonly="readonly" name="note" rows="8" style="width: 90%; font-size: x-small;">${dialogMD}</textarea><br/>` +
             '<button id="copyTextOfChat" title="Copy">&nbsp;&#x2398;&nbsp;</button> ' +
             '<button id="cutTextOfChat" title="Cut">&nbsp;&#x2702;&nbsp;</button> ';
           if (this._closedCaptionsDisplayed !== captionHTML) {
@@ -289,16 +289,16 @@ export default class MeetingController {
     // observe for participants changes
     const participantsBoxObserver = new MutationObserver((mutations) => {
       this._logger.log('Changes in participant box(es)', mutations);
-      mutations.forEach(function newParticipantObserverMutationsHandler(mut) {
+      mutations.forEach((mut) => {
         mut.addedNodes.forEach(
-          function newParticipantObserverMutationsHandlerNodeHandler(node) {
-            this.onParticipantNodeAdded(node);
-          },
+          (node: HTMLElement) => this.onParticipantNodeAdded(node),
+          this,
         );
 
-        mut.removedNodes.forEach(function participantNodeRemovedHandler(node) {
-          this.onParticipantNodeRemoved(node);
-        });
+        mut.removedNodes.forEach(
+          (node: HTMLElement) => this.onParticipantNodeRemoved(node),
+          this,
+        );
       });
     });
     const participantsContainerNode = this.getParticipantsContainerBoxNode();

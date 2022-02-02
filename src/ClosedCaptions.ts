@@ -104,11 +104,15 @@ export class ClosedCaptions {
 
   mergeLatestCC(): void {
     const now = new Date().getTime();
-    const dialogsDivs = this.ccElement.querySelectorAll(':scope > div');
+
+    // Scrape for dialogs within the closed caption element.
+    // We latch on the images for each of the speakers.
+    const speakerImages = this.ccElement.querySelectorAll('div > img');
 
     const newEvents = [];
-    // Pull all the dialogs on screen into a list
-    dialogsDivs.forEach((aDialogDiv) => {
+    // Each of the image should have two div siblings: the speaker name, what they said
+    speakerImages.forEach((aSpeakerImage) => {
+      const aDialogDiv = aSpeakerImage.parentElement;
       const authorAndSentenceDivs = aDialogDiv.querySelectorAll(':scope > div');
       if (authorAndSentenceDivs.length === 2) {
         const author: string = (<HTMLElement>authorAndSentenceDivs[0])
