@@ -1,5 +1,7 @@
 import { formatTime } from '../Utils';
 import { MeetingInformation, Storage } from '../Storage';
+import { ClosedCaptions } from '../ClosedCaptions';
+import { copyToClipboard } from '../Utils';
 const storage = new Storage();
 
 const updateView = function () {
@@ -10,14 +12,31 @@ const updateView = function () {
     document.querySelector('#totalTime').innerHTML = formatTime(
       currentMeeting.elapsed,
     );
-  });
 
-  // TODO there should be also the history object
+    // Update the transcript
+    const captions = new ClosedCaptions(currentMeeting.closedCaptions);
+    const dialogMD = captions.toMarkdown();
+    // const captionHTML = `<textarea id="textOfChat" class="scrollabletextbox" readonly="readonly" name="note" rows="8" style="width: 100%; font-size: xx-small;">${dialogMD}</textarea><br/>`;
+    (<HTMLTextAreaElement>(
+      document.getElementById('transcript-frh')
+    )).value = dialogMD;
+    document
+      .getElementById('button-copy-text-of-chat')
+      .addEventListener('click', function () {
+        copyToClipboard(dialogMD);
+      });
+    document
+      .getElementById('button-cut-text-of-chat')
+      .addEventListener('click', function () {
+        copyToClipboard(dialogMD);
+        currentMeeting.closedCaptions.clear();
+      });
+  });
 };
 
 setInterval(function () {
   updateView();
-}, 1000);
+}, 1500);
 
 function makeTableHTML(ar) {
   return `${ar.reduce(

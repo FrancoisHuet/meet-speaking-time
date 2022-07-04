@@ -29,13 +29,13 @@
           </p>
           <div class="flex items-center">
             <p class="mt-1 text-gray-700">
-              Your time is not calculated? Enable show you in a tile. 
+              Your time is not calculated? Enable show you in a tile.
             </p>
             <a href="https://support.google.com/meet/answer/9292748?hl=en-GB" target="_blank" title="You should view yourself in the video meeting. Click to see more details. We'll soon fix this.">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2.033 16.01c.564-1.789 1.632-3.932 1.821-4.474.273-.787-.211-1.136-1.74.209l-.34-.64c1.744-1.897 5.335-2.326 4.113.613-.763 1.835-1.309 3.074-1.621 4.03-.455 1.393.694.828 1.819-.211.153.25.203.331.356.619-2.498 2.378-5.271 2.588-4.408-.146zm4.742-8.169c-.532.453-1.32.443-1.761-.022-.441-.465-.367-1.208.164-1.661.532-.453 1.32-.442 1.761.022.439.466.367 1.209-.164 1.661z"/></svg>
             </a>
           </div>
-          
+
           <div id="table">
             <div class="w-full h-24 flex align-center py-4 bg-white opacity-75 z-50">
               <span class="text-green-500 opacity-75 my-0 mx-auto">
@@ -43,6 +43,30 @@
               </span>
             </div>
           </div>
+
+          <div>
+            <p class="mt-1 text-gray-700">
+              <div>Discussion:</div>
+
+              <textarea
+                id="transcript-frh"
+                class="scrollabletextbox"
+                readonly="readonly"
+                rows="8"
+                cols="20"
+                style="width: 100%;
+                font-size: xx-small;
+                line-height: 110%"
+              >Turn on closed captioning.</textarea>
+              <br/>
+
+              <div>
+                <button id="button-copy-text-of-chat" title="Copy">&nbsp;&#x2398;&nbsp;</button>
+                <button id="button-cut-text-of-chat" title="Cut">&nbsp;&#x2702;&nbsp;</button>
+              </div>
+            </p>
+          </div>
+
         </div>
       </div>
     </div>

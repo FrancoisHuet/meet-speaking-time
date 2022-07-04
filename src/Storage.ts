@@ -1,22 +1,26 @@
 import Logger from './Logger';
 import { Participant } from './Participant';
+import { ClosedCaptions } from './ClosedCaptions';
 
 export class MeetingInformation {
   meetingId: string;
   startedAt: number;
   elapsed: number;
   participants: Participant[];
+  closedCaptions: ClosedCaptions;
 
   constructor(
     meetingId: string,
     startedAt: number,
     elapsed: number,
     participants: Participant[],
+    closedCaptions: ClosedCaptions,
   ) {
     this.meetingId = meetingId;
     this.startedAt = startedAt;
     this.elapsed = elapsed;
     this.participants = participants;
+    this.closedCaptions = closedCaptions;
   }
 
   toObject(): unknown {

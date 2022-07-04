@@ -1,11 +1,9 @@
 export enum jsControllerCodes {
   // all the participants box divs are inside this
-  participantsContainerBox = 'gJYtNe', // 'MJfjyf' in previous versions
-  participantBox = 'J3CtX', // was 'HTP19d' in previous versions
+  participantsContainerBox = 'cGfF1e', // 'gJYtNe', 'MJfjyf' in previous versions
   participantNameBox = 'GQnsGd',
   microphoneBox = 'ES310d',
   timeMeetingBox = 'ymEVmc',
-  participantInformationBar = 'GQnsGd',
   userInformation = 'gjpsNc',
   imageProfile = 'PcYCFc',
   meetingDetailsInfoPane = 'dkJU2d',

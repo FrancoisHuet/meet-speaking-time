@@ -74,41 +74,85 @@ export default class MeetingController {
    * Returns the list of participants boxes in the window.
    * Please note, these may be less than the people in the meeting since only the visible ones are captured.
    */
-  getParticipantsNodes(): NodeListOf<Element> {
-    return document.querySelectorAll(
-      `div[jscontroller="${jsControllerCodes.participantBox}"]`,
+  getParticipantsNodes(): Element[] {
+    const participantsElementsSelector = Array.from(
+      document.querySelectorAll(`div[data-participant-id]`),
     );
+    return participantsElementsSelector;
   }
 
   /**
    * Returns the main box of the meeting that contains all the participants.
    */
   getParticipantsContainerBoxNode(): Element {
-    return getJSControllerDiv(
+    const containerElement = getJSControllerDiv(
       jsControllerCodes.participantsContainerBox,
       'main box of the meeting with all the participants',
+      true, // Can be null because of fallback
     );
+    if (containerElement) {
+      return containerElement;
+    }
+    // Fall back to be resilient to Google's changes
+    const participantBoxes = this.getParticipantsNodes();
+    if (participantBoxes.length) {
+      let parentElement = participantBoxes[0].parentElement;
+      while (parentElement !== null) {
+        const jscontrollerId = parentElement.getAttribute('jscontroller');
+        if (jscontrollerId) {
+          console.warn(
+            `Apparent change in CSS structure. Replace '${jsControllerCodes.participantsContainerBox}' ` +
+              `with '${jscontrollerId}'`,
+          );
+          return parentElement;
+        }
+        parentElement = parentElement.parentElement;
+      }
+    }
+    throw `Can't find meeting's main box.`;
+    return null;
   }
 
   /**
    * Returns the info pane node accessible by clicking the "i" info button.
    */
   getMeetingDetailsInfoPaneNode(): HTMLElement | null {
-    return getJSControllerDiv(
+    const infoPaneNode = getJSControllerDiv(
       jsControllerCodes.meetingDetailsInfoPane,
       'info pane node accessible by clicking the "i" info button',
       true, // Can be null, when the info box is hidden.
     );
+    if (infoPaneNode) {
+      return infoPaneNode;
+    }
+    const fallBackNodes = Array.from(
+      document.querySelectorAll('[data-tab-id]'),
+    ).filter((e) => {
+      const h = <HTMLScriptElement>e;
+      return h?.innerText?.indexOf('Meeting details') >= 0;
+    });
+
+    if (fallBackNodes.length === 1) {
+      const jscontrollerId = fallBackNodes[0].getAttribute('jscontroller');
+      if (jscontrollerId) {
+        console.warn(
+          `Apparent change in CSS structure. Replace '${jsControllerCodes.meetingDetailsInfoPane}' ` +
+            `with '${jscontrollerId}'`,
+        );
+        return <HTMLScriptElement>fallBackNodes[0];
+      }
+    }
+    return null;
   }
 
   /**
-   * Returns the initial id. Property called: "data-initial-participant-id".
+   * Returns the initial id. Property called: "data-participant-id".
    * @param node The participant DOM Element
-   * @returns data-initial-participant-id
+   * @returns data-participant-id
    */
   getParticipantInitialId(node: Element): string {
     if (node == null) return null;
-    return node.getAttribute('data-initial-participant-id');
+    return node.getAttribute('data-participant-id');
   }
 
   /**
@@ -238,12 +282,7 @@ export default class MeetingController {
 
         const infoNode = self.getOrCreateTimeTrackerInfoNode();
         if (infoNode) {
-          let dialogMD = '';
-          self.closedCaptions.events.forEach((ccEvent) => {
-            dialogMD += `**${ccEvent.who}**: ${ccEvent.what} (${formatTime(
-              ccEvent.howLong,
-            )})\n`;
-          });
+          const dialogMD = self.closedCaptions.toMarkdown();
           const captionHTML =
             'Text:<br/>' +
             `<textarea id="textOfChat" class="scrollabletextbox" readonly="readonly" name="note" rows="8" style="width: 90%; font-size: x-small;">${dialogMD}</textarea><br/>` +
@@ -251,7 +290,9 @@ export default class MeetingController {
             '<button id="cutTextOfChat" title="Cut">&nbsp;&#x2702;&nbsp;</button> ';
           if (this._closedCaptionsDisplayed !== captionHTML) {
             // Avoid refreshing if there's not change
-            infoNode.innerHTML = captionHTML;
+            if (infoNode) {
+              infoNode.innerHTML = captionHTML;
+            }
             this._closedCaptionsDisplayed = captionHTML;
             document
               .getElementById('copyTextOfChat')
@@ -276,6 +317,7 @@ export default class MeetingController {
           self.startedAt,
           self.getTotalElapsedTime(),
           readableParticipants,
+          self.closedCaptions,
         );
 
         self._storage.set(meetingInfo);

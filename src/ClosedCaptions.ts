@@ -1,6 +1,7 @@
 import Logger from './Logger';
 import { getJSControllerDiv } from './ScrapingUtils';
 import { jsControllerCodes } from './constants';
+import { formatTime } from './Utils';
 
 class ClosedCaptionEvent {
   when: number;
@@ -66,9 +67,12 @@ export class ClosedCaptions {
   ccElement: HTMLElement | null;
   _logger: Logger;
 
-  constructor() {
+  constructor(source?: ClosedCaptions) {
     this._logger = new Logger(`ClosedCaptions`);
     this.ccElement = this.getClosedCaptionsElement();
+    if (source) {
+      this.events = source.events;
+    }
   }
 
   /**
@@ -167,5 +171,15 @@ export class ClosedCaptions {
   stopObservers(): void {
     this.ccObserver.disconnect();
     // this.pauseSpeaking();
+  }
+
+  toMarkdown(): string {
+    let dialogMD = '';
+    this.events.forEach((ccEvent) => {
+      dialogMD += `**${ccEvent.who}**: ${ccEvent.what} (${formatTime(
+        ccEvent.howLong,
+      )})\n`;
+    });
+    return dialogMD;
   }
 }
