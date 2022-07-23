@@ -27,6 +27,9 @@ export function formatTime(ms: number): string {
       timeStr = `${seconds}s`;
     }
   }
+  if (100 < ms && ms < 1000) {
+    timeStr = `.${Math.floor(ms / 100)}s`;
+  }
   return timeStr;
 }
 

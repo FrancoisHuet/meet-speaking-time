@@ -28,7 +28,7 @@ export default class MeetingController {
 
     this.meetingStartedInterval = window.setInterval(
       function (self: MeetingController) {
-        self._logger.log(`Is meeting started: ${self.isMeetingStarted()}`);
+        // self._logger.log(`Is meeting started: ${self.isMeetingStarted()}`);
 
         if (self.isMeetingStarted()) {
           self._logger.log('Meeting started.');
@@ -350,11 +350,11 @@ export default class MeetingController {
   }
 
   onParticipantNodeAdded(node: HTMLElement): void {
-    this._logger.log('Node added', node);
+    // this._logger.log('Node added', node);
     if (this.isPresentationNode(node)) return;
 
     const initialId = this.getParticipantInitialId(node);
-    this._logger.log('Initial id', initialId);
+    // this._logger.log('Initial id', initialId);
 
     if (initialId) {
       let participant = this.getParticipantByInitialId(initialId);
@@ -365,14 +365,14 @@ export default class MeetingController {
 
         if (!participant.isPresentationBox()) {
           this.participants.push(participant);
-          this._logger.log('Participant added', initialId, participant);
+          // this._logger.log('Participant added', initialId, participant);
         } else {
-          this._logger.log('Participant is a presentation box');
+          // this._logger.log('Participant is a presentation box');
         }
       } else {
-        this._logger.log('Participant already exists', initialId);
+        // this._logger.log('Participant already exists', initialId);
       }
-      this._logger.log('Participant', participant);
+      // this._logger.log('Participant', participant);
 
       participant.startObservers();
     }
@@ -401,7 +401,7 @@ export default class MeetingController {
     const isPresentation =
       innerHTML.indexOf(this.getMeetUiStrings().presenting) != -1 ||
       innerHTML.indexOf(this.getMeetUiStrings().presentation) != -1;
-    this._logger.log(node, isPresentation, this.getMeetUiStrings());
+    // this._logger.log(node, isPresentation, this.getMeetUiStrings());
     return isPresentation;
   }
 

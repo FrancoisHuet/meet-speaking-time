@@ -86,7 +86,7 @@ export class Participant {
           new ParticipantEvent(ParticipantEventEnum.START_SPEAKING),
         );
       const now = new Date().getTime();
-      this._logger.log(`[${this.initialId}][${now}]`);
+      // this._logger.log(`[${this.initialId}][${now}]`);
       this.speakingStrikeStart = now;
     }
   }
@@ -101,14 +101,14 @@ export class Participant {
       );
     const now = new Date().getTime();
     this.lastSpeakingEnd = now;
-    this._logger.log(`[${this.initialId}][${now}]`);
+    // this._logger.log(`[${this.initialId}][${now}]`);
 
     if (this.speakingStrikeStart) {
       const speakingTime = now - this.speakingStrikeStart;
-      this._logger.log(`speakingTime is '${speakingTime}'`);
-      this._logger.log(
-        `previous totalSpeakingTime was '${this.totalSpeakingTime}'`,
-      );
+      // this._logger.log(`speakingTime is '${speakingTime}'`);
+      // this._logger.log(
+      //   `previous totalSpeakingTime was '${this.totalSpeakingTime}'`,
+      // );
       this.incrementSpeakingTime(speakingTime);
     }
   }
@@ -136,10 +136,10 @@ export class Participant {
     const microphoneNode = this.node.getMicrophoneElement() || null;
     const nodeClass = microphoneNode ? microphoneNode.className : '';
     const isSilence = nodeClass.includes(microphoneStatuses.silence);
-    this._logger.log(
-      `nodeClass=${nodeClass} isSilence='${isSilence}'`,
-      microphoneNode,
-    );
+    // this._logger.log(
+    //   `nodeClass=${nodeClass} isSilence='${isSilence}'`,
+    //   microphoneNode,
+    // );
     return !isSilence;
   }
 
@@ -153,11 +153,11 @@ export class Participant {
         } else {
           this.pauseSpeaking();
         }
-        this._logger.log(
-          `[observer][${this.initialId}] class has changed.`,
-          isSpeaking,
-          mutations,
-        );
+        // this._logger.log(
+        //   `[observer][${this.initialId}] class has changed.`,
+        //   isSpeaking,
+        //   mutations,
+        // );
       });
 
       this.microphoneObserver.observe(microphoneElement, {

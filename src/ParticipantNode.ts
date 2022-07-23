@@ -19,23 +19,29 @@ export class ParticipantNode {
     return document.querySelector(`${this.mainNodeQuerySelector}`);
   }
 
-  getMicrophoneElement(): Element {
-    return this.getMainElement().querySelector(
-      `${this.microphoneQuerySelector}`,
-    );
+  getMicrophoneElement(): Element | null {
+    const mainElement = this.getMainElement();
+    if (mainElement) {
+      return mainElement.querySelector(`${this.microphoneQuerySelector}`);
+    }
+    return null;
   }
 
   // Each participant can have multiple name UI elements
   getNameElements(): NodeListOf<HTMLElement> | null {
     const mainElement = this.getMainElement();
-    if (!mainElement) {
-      return null;
+    if (mainElement) {
+      return mainElement.querySelectorAll(`${this.nameNodeQuerySelector}`);
     }
-    return mainElement.querySelectorAll(`${this.nameNodeQuerySelector}`);
+    return null;
   }
 
   getName(): string {
-    return this.getNameElements() ? this.getNameElements()[0].innerHTML : '';
+    const nameElements = this.getNameElements();
+    if (nameElements && nameElements.length > 0) {
+      return nameElements[0].innerHTML;
+    }
+    return '';
   }
 
   getImageProfileElement(): Element {
